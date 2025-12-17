@@ -1,2 +1,3 @@
 from .review import Review
-from .rating import Rating
+from .property_rating import PropertyRating
+from .user_rating import UserRating
