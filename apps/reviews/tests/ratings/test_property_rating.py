@@ -1,8 +1,8 @@
 from django.utils import timezone
 from datetime import date, timedelta
-from .base import BaseReviewTest
+from ..base import BaseReviewTest
 from apps.reviews.services.review import create_review
-from ...bookings.models.booking import Booking
+from ....bookings.models.booking import Booking
 
 
 class RatingCreationTest(BaseReviewTest):
@@ -19,7 +19,8 @@ class RatingCreationTest(BaseReviewTest):
             role=self.role_tenant,
         )
 
-        rating = self.landlord.rating
+        # rating = self.landlord.rating
+        rating = self.booking.listing.property.rating
         assert rating.reviews_count == 1
         assert rating.average == 5
 
@@ -59,6 +60,8 @@ class RatingUpdateTest(BaseReviewTest):
 
         self.landlord.refresh_from_db()
 
-        rating = self.landlord.rating
+        # rating = self.landlord.rating
+        rating = self.booking.listing.property.rating
+        rating.refresh_from_db()
         assert rating.reviews_count == 2
         assert rating.average == 4

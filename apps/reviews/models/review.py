@@ -11,6 +11,45 @@ class ReviewDirection(models.TextChoices):
     LANDLORD_TO_TENANT = "landlord_to_tenant", "Landlord → Tenant"
 
 
+class ReviewModerationStatus(models.TextChoices):
+    # moderation flow
+    APPROVED = "approved", "Approved"
+    PENDING = "pending", "Pending"
+    REJECTED = "rejected", "Rejected"
+
+    # soft delete / removal
+    USER_REMOVED = "user_removed", "Removed by user"
+    MODERATOR_REMOVED = "moderator_removed", "Removed by moderator"
+
+
+class ReviewQuerySet(models.QuerySet):
+    def not_removed(self):
+        return self.exclude(
+            moderation_status__in=[
+                ReviewModerationStatus.USER_REMOVED,
+                ReviewModerationStatus.MODERATOR_REMOVED,
+            ]
+        )
+
+    def visible_public(self):
+        """
+        Visible to public pages and other users:
+        - approved
+        - not removed
+        - not hidden
+        """
+        return (
+            self.not_removed()
+            .filter(moderation_status=ReviewModerationStatus.APPROVED, is_hidden=False)
+        )
+
+    def counts_for_rating(self):
+        """
+        Reviews that affect rating calculation
+        """
+        return self.visible_public()
+
+
 class Review(models.Model):
     booking = models.ForeignKey(
         Booking,
@@ -42,10 +81,15 @@ class Review(models.Model):
     )
 
     rating = models.PositiveSmallIntegerField(
-        validators=[
-            MinValueValidator(1),
-            MaxValueValidator(5),
-        ],
+        validators=[MinValueValidator(1), MaxValueValidator(5)],
+    )
+
+    property_rating = models.ForeignKey(
+        "reviews.PropertyRating",
+        on_delete=models.CASCADE,
+        related_name="reviews",
+        null=True,
+        blank=False,
     )
 
     comment = models.TextField(
@@ -59,43 +103,61 @@ class Review(models.Model):
         help_text="ISO language code, e.g. en, de, ru",
     )
 
-    # moderation / future
+    # moderation / visibility
     is_hidden = models.BooleanField(
         default=False,
         help_text="Hidden by moderation",
     )
 
     moderation_status = models.CharField(
-        max_length=16,
-        choices=[
-            ("approved", "Approved"),
-            ("pending", "Pending"),
-            ("rejected", "Rejected"),
-        ],
-        default="approved",
+        max_length=20,
+        choices=ReviewModerationStatus.choices,
+        default=ReviewModerationStatus.APPROVED,
     )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
+    updated_at = models.DateTimeField(auto_now=True)
+
+    objects = ReviewQuerySet.as_manager()
+
     class Meta:
         ordering = ["-created_at"]
         constraints = [
-            #  You can't leave a review for yourself
+            # You can't leave a review for yourself
             models.CheckConstraint(
                 condition=~models.Q(reviewer=models.F("target")),
                 name="reviewer_is_not_target",
             ),
 
-            # one review per destination per booking
+            # one review per direction per booking
             models.UniqueConstraint(
                 fields=["booking", "direction"],
                 name="unique_review_per_booking_direction",
             ),
+
+            # PropertyRating only for tenant reviews
+            models.CheckConstraint(
+                condition=(
+                    models.Q(
+                        direction=ReviewDirection.TENANT_TO_LANDLORD,
+                        property_rating__isnull=False,
+                    )
+                    | models.Q(
+                        direction=ReviewDirection.LANDLORD_TO_TENANT,
+                        property_rating__isnull=True,
+                    )
+                ),
+                name="property_rating_only_for_tenant_reviews",
+            ),
         ]
 
     def __str__(self) -> str:
-        return (
-            f"Review #{self.pk} "
-            f"{self.direction} "
-            f"({self.rating}/5)"
+        return f"Review #{self.pk} {self.direction} ({self.rating}/5)"
+
+    @property
+    def is_removed(self) -> bool:
+        return self.moderation_status in (
+            ReviewModerationStatus.USER_REMOVED,
+            ReviewModerationStatus.MODERATOR_REMOVED,
         )
