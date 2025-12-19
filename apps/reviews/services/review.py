@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
 
-from apps.accounts.models import Role
 from apps.reviews.models import Review, PropertyRating, UserRating
 from apps.reviews.models.review import ReviewDirection
+from apps.reviews.models.review_audit import ReviewAudit, ReviewAuditAction
 
 
 def create_review(
@@ -14,6 +14,8 @@ def create_review(
     comment: str = "",
     language: str = "",
 ):
+    comment = comment or ""
+    language = language or ""
 
     if not booking.can_leave_review:
         raise ValidationError("You can leave a review only after check-in and check-out.")
@@ -54,6 +56,12 @@ def create_review(
         property_rating=property_rating,
         comment=comment,
         language=language,
+    )
+
+    ReviewAudit.objects.create(
+        review=review,
+        actor=reviewer,
+        action=ReviewAuditAction.CREATED,
     )
 
     target_rating.recalculate(new_score=rating)
