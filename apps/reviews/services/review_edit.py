@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 
-from apps.reviews.models.review import Review, ReviewDirection
-
+from apps.reviews.models.review import Review, ReviewDirection, ReviewModerationStatus
+from apps.reviews.models.review_audit import ReviewAudit, ReviewAuditAction
 
 EDIT_WINDOW_MINUTES = 30
 
@@ -13,38 +13,50 @@ def edit_review(
     editor,
     rating: int | None = None,
     comment: str | None = None,
-):
+    language: str | None = None,
+) -> Review:
 
-    if review.reviewer != editor:
+    if review.reviewer_id != editor.id:
         raise ValidationError("You can edit only your own review.")
+
+    if review.moderation_status in (
+        ReviewModerationStatus.USER_REMOVED,
+        ReviewModerationStatus.MODERATOR_REMOVED,
+    ):
+        raise ValidationError("You cannot edit a removed review.")
 
     if timezone.now() > review.created_at + timezone.timedelta(minutes=EDIT_WINDOW_MINUTES):
         raise ValidationError("Edit window has expired.")
 
-    # immutable fields protection
-    if rating is not None:
+    if rating is not None and rating != review.rating:
         delta = rating - review.rating
         review.rating = rating
 
-        # UserRating allways
-        review.target.rating.reviews_count
-        review.target.rating.total_score += delta
-        review.target.rating.average = (
-            review.target.rating.total_score / review.target.rating.reviews_count
-        )
-        review.target.rating.save(
-            update_fields=["total_score", "average", "updated_at"]
-        )
+        # UserRating
+        user_rating = review.target.rating
+        user_rating.total_score += delta
+        user_rating.average = user_rating.total_score / user_rating.reviews_count
+        user_rating.save(update_fields=["total_score", "average"])
 
-        # PropertyRating — only for TENANT→LANDLORD
+        # PropertyRating — only TENANT → LANDLORD
         if review.direction == ReviewDirection.TENANT_TO_LANDLORD:
             pr = review.property_rating
             pr.total_score += delta
             pr.average = pr.total_score / pr.reviews_count
-            pr.save(update_fields=["total_score", "average", "updated_at"])
+            pr.save(update_fields=["total_score", "average"])
 
     if comment is not None:
         review.comment = comment
 
-    review.save(update_fields=["rating", "comment", "updated_at"])
+    if language is not None:
+        review.language = language
+
+    review.save(update_fields=["rating", "comment", "language"])
+
+    ReviewAudit.objects.create(
+        review=review,
+        actor=editor,
+        action=ReviewAuditAction.EDITED,
+    )
+
     return review

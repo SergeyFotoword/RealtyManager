@@ -1,23 +1,26 @@
 from rest_framework import serializers
+from apps.reviews.models.review import Review
 
-from apps.reviews.models import Review
+
+class ReviewPublicListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = ["id", "rating", "comment", "language", "created_at"]
 
 
-class ReviewListSerializer(serializers.ModelSerializer):
-    reviewer_id = serializers.IntegerField(source="reviewer.id", read_only=True)
-    target_id = serializers.IntegerField(source="target.id", read_only=True)
-
+class ReviewPrivateListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Review
         fields = [
             "id",
-            "booking_id",
-            "reviewer_id",
-            "target_id",
-            "direction",
             "rating",
             "comment",
             "language",
             "created_at",
+            "moderation_status",
+            "is_hidden",
+            "direction",
+            "booking_id",
+            "reviewer_id",
+            "target_id",
         ]
-        read_only_fields = fields

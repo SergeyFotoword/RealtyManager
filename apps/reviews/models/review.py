@@ -94,6 +94,7 @@ class Review(models.Model):
 
     comment = models.TextField(
         blank=True,
+        default="",
         help_text="Optional text review",
     )
 
@@ -154,10 +155,3 @@ class Review(models.Model):
 
     def __str__(self) -> str:
         return f"Review #{self.pk} {self.direction} ({self.rating}/5)"
-
-    @property
-    def is_removed(self) -> bool:
-        return self.moderation_status in (
-            ReviewModerationStatus.USER_REMOVED,
-            ReviewModerationStatus.MODERATOR_REMOVED,
-        )
