@@ -8,7 +8,7 @@ class Review(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="given_reviews",
-        verbose_name="Кто оставил отзыв",
+        verbose_name="Who left a review?",
     )
     target = models.ForeignKey(
         settings.AUTH_USER_MODEL,
