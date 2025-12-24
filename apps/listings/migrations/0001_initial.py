@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
             name='ListingImage',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('image', models.ImageField(upload_to=apps.listings.models.listing_image_path)),
+                ('image', models.ImageField(upload_to=apps.listings.models.models.listing_image_path)),
                 ('is_cover', models.BooleanField(default=False)),
                 ('order', models.PositiveSmallIntegerField(default=0)),
                 ('uploaded_at', models.DateTimeField(auto_now_add=True)),
