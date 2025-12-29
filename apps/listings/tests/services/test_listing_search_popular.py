@@ -56,3 +56,21 @@ class ListingSearchPopularTest(BaseListingTest, TestCase):
         qs = search_listings(order_by=ListingOrderBy.POPULAR_7D)
 
         self.assertEqual(list(qs), [l1, l2])
+
+    def test_popular_30d_counts_views_within_30_days(self):
+        l1 = self.create_listing(status=ListingStatus.ACTIVE)
+        l2 = self.create_listing(status=ListingStatus.ACTIVE)
+
+        v1 = ListingView.objects.create(listing=l1)
+        v2 = ListingView.objects.create(listing=l2)
+
+        ListingView.objects.filter(id=v1.id).update(
+            created_at=timezone.now() - timedelta(days=20)
+        )
+        ListingView.objects.filter(id=v2.id).update(
+            created_at=timezone.now() - timedelta(days=40)
+        )
+
+        qs = search_listings(order_by=ListingOrderBy.POPULAR_30D)
+
+        self.assertEqual(list(qs), [l1, l2])

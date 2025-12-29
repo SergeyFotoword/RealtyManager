@@ -18,8 +18,9 @@ class ReviewPublicListTest(BaseReviewTest, APITestCase):
         response = self.client.get(url)
 
         assert response.status_code == status.HTTP_200_OK
-        assert len(response.data) == 1
-        assert response.data[0]["id"] == review.id
+        assert response.data["count"] == 1
+        assert len(response.data["results"]) == 1
+        assert response.data["results"][0]["id"] == review.id
 
     def test_public_list_hides_user_removed_review(self):
         self.complete_stay()
@@ -31,7 +32,8 @@ class ReviewPublicListTest(BaseReviewTest, APITestCase):
         response = self.client.get(reverse("review-list-public"))
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
 
     def test_public_list_hides_moderator_removed_review(self):
         self.complete_stay()
@@ -43,7 +45,8 @@ class ReviewPublicListTest(BaseReviewTest, APITestCase):
         response = self.client.get(reverse("review-list-public"))
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
 
     def test_public_list_hides_hidden_review(self):
         self.complete_stay()
@@ -55,7 +58,8 @@ class ReviewPublicListTest(BaseReviewTest, APITestCase):
         response = self.client.get(reverse("review-list-public"))
 
         assert response.status_code == status.HTTP_200_OK
-        assert response.data == []
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
 
 
     def test_public_list_hides_not_approved_reviews(self):
@@ -66,10 +70,14 @@ class ReviewPublicListTest(BaseReviewTest, APITestCase):
         review.save()
 
         response = self.client.get(reverse("review-list-public"))
-        assert response.data == []
+        assert response.status_code == 200
+        assert response.data["count"] == 0
+        assert response.data["results"] == []
 
         review.moderation_status = ReviewModerationStatus.REJECTED
         review.save()
 
         response = self.client.get(reverse("review-list-public"))
-        assert response.data == []
+        assert response.status_code == 200
+        assert response.data["count"] == 0
+        assert response.data["results"] == []

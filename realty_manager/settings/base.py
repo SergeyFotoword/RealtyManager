@@ -59,6 +59,11 @@ TEMPLATES = [
     },
 ]
 
+REST_FRAMEWORK = {
+    "DEFAULT_PAGINATION_CLASS": "realty_manager.pagination.DefaultPagination",
+    "PAGE_SIZE": 10,
+}
+
 WSGI_APPLICATION = 'realty_manager.wsgi.application'
 ASGI_APPLICATION = 'realty_manager.asgi.application'
 

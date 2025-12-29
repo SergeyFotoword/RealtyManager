@@ -13,8 +13,8 @@ class ListingSearchAPITest(BaseListingTest, APITestCase):
         resp = self.client.get(url, {"search": "Berlin"})
 
         assert resp.status_code == 200
-        assert len(resp.data) == 1
-        assert "Berlin" in resp.data[0]["title"]
+        assert len(resp.data["results"]) == 1
+        assert "Berlin" in resp.data["results"][0]["title"]
 
     def test_filter_by_price_range(self):
         self.create_listing(price_eur=500)
@@ -24,8 +24,11 @@ class ListingSearchAPITest(BaseListingTest, APITestCase):
         resp = self.client.get(url, {"price_min": 600, "price_max": 1300})
 
         assert resp.status_code == 200
-        assert len(resp.data) == 1
-        assert resp.data[0]["price_eur"] == "1200.00" or resp.data[0]["price_eur"] == 1200
+        assert resp.data["count"] == 1
+        assert len(resp.data["results"]) == 1
+
+        price = resp.data["results"][0]["price_eur"]
+        assert float(price) == 1200
 
     def test_filter_by_rooms_min(self):
         self.create_listing(rooms=1)
@@ -35,8 +38,9 @@ class ListingSearchAPITest(BaseListingTest, APITestCase):
         resp = self.client.get(url, {"rooms_min": 2})
 
         assert resp.status_code == 200
-        assert len(resp.data) == 1
-        assert resp.data[0]["rooms"] == 3
+        assert resp.data["count"] == 1
+        assert len(resp.data["results"]) == 1
+        assert resp.data["results"][0]["rooms"] == 3
 
     def test_filter_by_property_type(self):
         self.create_listing(property_type="apartment")
@@ -46,8 +50,9 @@ class ListingSearchAPITest(BaseListingTest, APITestCase):
         resp = self.client.get(url, {"property_type": "house"})
 
         assert resp.status_code == 200
-        assert len(resp.data) == 1
-        assert resp.data[0]["property_type"] == "house"
+        assert resp.data["count"] == 1
+        assert len(resp.data["results"]) == 1
+        assert resp.data["results"][0]["property_type"] == "house"
 
     def test_ordering_by_price_desc(self):
         self.create_listing(price_eur=500)
@@ -57,5 +62,9 @@ class ListingSearchAPITest(BaseListingTest, APITestCase):
         resp = self.client.get(url, {"order_by": "price_desc"})
 
         assert resp.status_code == 200
-        assert len(resp.data) == 2
-        assert float(resp.data[0]["price_eur"]) >= float(resp.data[1]["price_eur"])
+        assert resp.data["count"] == 2
+        assert len(resp.data["results"]) == 2
+
+        prices = [float(item["price_eur"]) for item in resp.data["results"]]
+        assert prices == sorted(prices, reverse=True)
+

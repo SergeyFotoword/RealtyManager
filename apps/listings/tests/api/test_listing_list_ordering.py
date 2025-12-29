@@ -16,7 +16,7 @@ class ListingListOrderingAPITest(BaseListingTest, APITestCase):
         response = self.client.get(url, {"order_by": "abracadabra"})
 
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(len(response.data), 2)
+        self.assertEqual(len(response.data["results"]), 2)
 
     def test_options_returns_order_by_choices(self):
         url = reverse("listing-public-list")

@@ -4,7 +4,6 @@ from rest_framework.permissions import AllowAny
 
 from apps.listings.services.search_popular import(
     get_popular_search_queries,
-    get_popular_search_queries_7d,
 )
 
 
@@ -15,8 +14,10 @@ class PopularSearchQueryView(APIView):
         period = request.query_params.get("period")
 
         if period == "7d":
-            data = get_popular_search_queries_7d(limit=10)
+            data = get_popular_search_queries(days=7)
+        elif period == "30d":
+            data = get_popular_search_queries(days=30)
         else:
-            data = get_popular_search_queries(limit=10)
+            data = get_popular_search_queries()
 
         return Response(data)
