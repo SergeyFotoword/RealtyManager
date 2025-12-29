@@ -33,6 +33,7 @@ def search_listings(
     rooms_min=None,
     rooms_max=None,
     property_type=None,
+    amenities: str | None = None,
     city: str | None = None,
     has_images: bool | None = None,
     order_by: str | None = None,
@@ -72,6 +73,11 @@ def search_listings(
     if city:
         qs = qs.filter(property__location__city__icontains=city)
 
+    if amenities:
+        slugs = [s.strip() for s in amenities.split(",") if s.strip()]
+        if slugs:
+            qs = qs.filter(property__amenities__slug__in=slugs).distinct()
+
     # listings with/without images
     if has_images is True:
         qs = qs.filter(images__isnull=False).distinct()
@@ -102,6 +108,15 @@ def search_listings(
 
     elif order_by == ListingOrderBy.POPULAR_7D:
         since = timezone.now() - timedelta(days=7)
+        qs = qs.annotate(
+            popularity=Count(
+                "views",
+                filter=Q(views__created_at__gte=since),
+            )
+        ).order_by("-popularity", "-created_at")
+
+    elif order_by == ListingOrderBy.POPULAR_30D:
+        since = timezone.now() - timedelta(days=30)
         qs = qs.annotate(
             popularity=Count(
                 "views",

@@ -16,8 +16,9 @@ class ReviewListAPITest(BaseReviewTest, APITestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp.data) == 1
-        assert resp.data[0]["id"] == review.id
+        assert resp.data["count"] == 1
+        assert len(resp.data["results"]) == 1
+        assert resp.data["results"][0]["id"] == review.id
 
         # hidden => disappears from public
         review.is_hidden = True
@@ -25,7 +26,8 @@ class ReviewListAPITest(BaseReviewTest, APITestCase):
 
         resp = self.client.get(url, format="json")
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp.data) == 0
+        assert resp.data["count"] == 0
+        assert resp.data["results"] == []
 
         # approved but removed => disappears from public
         review.is_hidden = False
@@ -34,7 +36,8 @@ class ReviewListAPITest(BaseReviewTest, APITestCase):
 
         resp = self.client.get(url, format="json")
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp.data) == 0
+        assert resp.data["count"] == 0
+        assert resp.data["results"] == []
 
         # pending => disappears from public
         review.moderation_status = ReviewModerationStatus.PENDING
@@ -42,7 +45,8 @@ class ReviewListAPITest(BaseReviewTest, APITestCase):
 
         resp = self.client.get(url, format="json")
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp.data) == 0
+        assert resp.data["count"] == 0
+        assert resp.data["results"] == []
 
     def test_private_list_includes_user_removed_and_hidden(self):
         self.complete_stay()
@@ -57,7 +61,10 @@ class ReviewListAPITest(BaseReviewTest, APITestCase):
         resp = self.client.get(url, format="json")
 
         assert resp.status_code == status.HTTP_200_OK
-        assert len(resp.data) == 1
-        assert resp.data[0]["id"] == review.id
-        assert resp.data[0]["moderation_status"] == ReviewModerationStatus.USER_REMOVED
-        assert resp.data[0]["is_hidden"] is True
+        assert resp.data["count"] == 1
+        assert len(resp.data["results"]) == 1
+
+        item = resp.data["results"][0]
+        assert item["id"] == review.id
+        assert item["moderation_status"] == ReviewModerationStatus.USER_REMOVED
+        assert item["is_hidden"] is True

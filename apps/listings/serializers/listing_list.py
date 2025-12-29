@@ -9,6 +9,13 @@ class ListingListSerializer(serializers.ModelSerializer):
     rooms = serializers.IntegerField(
         source="property.rooms"
     )
+    amenities = serializers.SlugRelatedField(
+        source="property.amenities",
+        many=True,
+        read_only=True,
+        slug_field="slug",
+    )
+
 
     class Meta:
         model = Listing
@@ -19,4 +26,5 @@ class ListingListSerializer(serializers.ModelSerializer):
             "created_at",
             "property_type",
             "rooms",
+            "amenities",
         ]
