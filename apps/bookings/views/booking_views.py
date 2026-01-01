@@ -1,13 +1,14 @@
-from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.shortcuts import get_object_or_404
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from rest_framework.views import APIView
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
 
-from apps.bookings.models.booking import Booking
+from drf_spectacular.utils import extend_schema, OpenApiResponse
+
+from apps.bookings.models import Booking
 from apps.bookings.serializers.booking_serializers import (
     BookingCreateSerializer,
     BookingListSerializer,
@@ -17,53 +18,79 @@ from apps.bookings.services.booking import (
     confirm_booking,
     cancel_booking,
 )
-from apps.listings.models import Listing
+
 
 class BookingCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Create booking",
+        request=BookingCreateSerializer,
+        responses={
+            201: BookingListSerializer,
+            400: OpenApiResponse(description="Validation or business rule error"),
+            401: OpenApiResponse(description="Unauthorized"),
+            404: OpenApiResponse(description="Listing not found"),
+        },
+    )
     @transaction.atomic
     def post(self, request):
-        serializer = BookingCreateSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        listing = get_object_or_404(
-            Listing,
-            pk=serializer.validated_data["listing_id"],
+        serializer = BookingCreateSerializer(
+            data=request.data,
+            context={"request": request},
         )
+        serializer.is_valid(raise_exception=True)
 
         try:
             booking = create_booking(
-                listing=listing,
-                tenant=request.user,
-                start_date=serializer.validated_data["start_date"],
-                end_date=serializer.validated_data["end_date"],
+                user=request.user,
+                **serializer.validated_data,
             )
         except DjangoValidationError as e:
             return Response(
-                {"detail": e.messages},
-                status=status.HTTP_400_BAD_REQUEST,
+                {"errors": e.messages},
+                status=400,
             )
 
         return Response(
             BookingListSerializer(booking).data,
-            status=status.HTTP_201_CREATED,
+            status=201,
         )
 
 
 class MyBookingsView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="List my bookings",
+        responses=BookingListSerializer(many=True),
+    )
     def get(self, request):
-        qs = Booking.objects.filter(tenant=request.user)
+        qs = (
+            Booking.objects
+            .filter(user=request.user)
+            .select_related("listing")
+            .order_by("-created_at")
+        )
+
         return Response(
-            BookingListSerializer(qs, many=True).data
+            BookingListSerializer(qs, many=True).data,
+            status=200,
         )
 
 
 class BookingConfirmView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Confirm booking (landlord)",
+        responses={
+            204: OpenApiResponse(description="Booking confirmed"),
+            400: OpenApiResponse(description="Business rule violation"),
+            401: OpenApiResponse(description="Unauthorized"),
+            404: OpenApiResponse(description="Booking not found"),
+        },
+    )
     @transaction.atomic
     def post(self, request, booking_id):
         booking = get_object_or_404(Booking, pk=booking_id)
@@ -71,20 +98,26 @@ class BookingConfirmView(APIView):
         try:
             confirm_booking(
                 booking=booking,
-                landlord=request.user,
+                user=request.user,
             )
         except DjangoValidationError as e:
-            return Response(
-                {"detail": e.messages},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"errors": e.messages}, status=400)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=204)
 
 
 class BookingCancelView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Cancel booking",
+        responses={
+            204: OpenApiResponse(description="Booking cancelled"),
+            400: OpenApiResponse(description="Business rule violation"),
+            401: OpenApiResponse(description="Unauthorized"),
+            404: OpenApiResponse(description="Booking not found"),
+        },
+    )
     @transaction.atomic
     def post(self, request, booking_id):
         booking = get_object_or_404(Booking, pk=booking_id)
@@ -95,9 +128,6 @@ class BookingCancelView(APIView):
                 user=request.user,
             )
         except DjangoValidationError as e:
-            return Response(
-                {"detail": e.messages},
-                status=status.HTTP_400_BAD_REQUEST,
-            )
+            return Response({"errors": e.messages}, status=400)
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return Response(status=204)

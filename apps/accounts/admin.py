@@ -16,7 +16,7 @@ class UserProfileInline(admin.StackedInline):
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
-    list_display = ("id", "username", "email", "phone", "get_roles")
+    list_display = ("id", "username", "email", "get_roles")
     search_fields = ("username", "email")
     list_filter = ("roles",)
     inlines = [UserProfileInline]

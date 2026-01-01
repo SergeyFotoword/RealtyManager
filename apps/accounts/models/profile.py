@@ -16,8 +16,11 @@ class UserProfile(models.Model):
     public_id = models.UUIDField(default=uuid.uuid4, editable=False, unique=True)
     nickname = models.CharField(max_length=32, unique=True, null=True, blank=True)
     nickname_updated_at = models.DateTimeField(null=True, blank=True)
-    avatar = models.FileField(upload_to="avatars/", blank=True, null=True)
+
+    phone = models.CharField(max_length=20, blank=True)  # ← ВОТ ОН
     bio = models.TextField(blank=True)
+
+    avatar = models.FileField(upload_to="avatars/", blank=True, null=True)
 
     def __str__(self):
         return f"Profile {self.user.username}"
@@ -26,6 +29,3 @@ class UserProfile(models.Model):
         if self.avatar:
             return self.avatar.url
         return static("img/default_avatar.webp")
-
-    def clean(self):
-        super().clean()
