@@ -87,16 +87,20 @@ class MeNicknameEndpointTest(APITestCase):
         # Let's take the current state
         g = self.client.get(self.url)
         self.assertEqual(g.status_code, status.HTTP_200_OK)
-        expected = g.data["nickname_updated_at"]
-
-        # Change your nickname (updated_at will change)
+        # First change (sets nickname_updated_at)
         r1 = self.client.patch(self.url, {"nickname": "Nick1"}, format="json")
         self.assertEqual(r1.status_code, status.HTTP_200_OK)
 
-        # We are trying to change it again, but with an outdated expected value.
+        expected = r1.data["nickname_updated_at"]
+
+        # Second change with stale timestamp
         r2 = self.client.patch(
             self.url,
             {"nickname": "Nick2", "expected_nickname_updated_at": expected},
             format="json",
         )
-        self.assertEqual(r2.status_code, status.HTTP_409_CONFLICT)
+        self.assertEqual(r2.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            r2.data["nickname"][0].code,
+            "nickname_already_changed",
+        )

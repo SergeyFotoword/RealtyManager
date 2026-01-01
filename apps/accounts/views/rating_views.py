@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from ..models.rating import Rating
@@ -7,6 +8,10 @@ from rest_framework.permissions import IsAuthenticated
 class UserRatingsView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        responses=RatingSerializer(many=True),
+        summary="Get ratings for a user",
+    )
     def get(self, request, user_id):
         ratings = Rating.objects.filter(user_id=user_id).select_related("role")
         serializer = RatingSerializer(ratings, many=True)

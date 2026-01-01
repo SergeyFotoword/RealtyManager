@@ -1,53 +1,94 @@
-from django.db import transaction
-from rest_framework.views import APIView
+from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from rest_framework import status
-from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.views import APIView
+from drf_spectacular.utils import extend_schema, OpenApiResponse
 
 from apps.accounts.models.profile import UserProfile
-from apps.accounts.serializers.me_nickname_serializers import (
-    MeNicknameSerializer,
-    ChangeNicknameSerializer,
+from apps.accounts.serializers.me_serializers import (
+    MeReadSerializer,
+    MeProfileUpdateSerializer,
 )
-from apps.accounts.services.profile import change_nickname
+from apps.accounts.serializers.me_nickname_serializers import (
+    MeNicknameReadSerializer,
+    MeNicknameUpdateSerializer,
+)
+
+
+def get_or_create_profile(user) -> UserProfile:
+    profile, _ = UserProfile.objects.get_or_create(user=user)
+    return profile
+
+class MeView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["accounts"],
+        summary="Get my profile",
+        responses={200: MeReadSerializer},
+    )
+    def get(self, request):
+        profile = get_or_create_profile(request.user)
+        return Response(MeReadSerializer(profile).data)
+
+
+class MeProfileUpdateView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    @extend_schema(
+        tags=["accounts"],
+        summary="Update my profile",
+        request=MeProfileUpdateSerializer,
+        responses={200: MeReadSerializer},
+    )
+    def patch(self, request):
+        profile = get_or_create_profile(request.user)
+
+        serializer = MeProfileUpdateSerializer(
+            profile,
+            data=request.data,
+            partial=True,
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+
+        return Response(MeReadSerializer(profile).data)
 
 
 class MeNicknameView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        tags=["accounts"],
+        summary="Get my nickname",
+        responses={200: MeNicknameReadSerializer},
+    )
     def get(self, request):
-        profile = UserProfile.objects.get(user=request.user)
-        data = {
-            "nickname": profile.nickname,
-            "nickname_updated_at": profile.nickname_updated_at,
-        }
-        return Response(MeNicknameSerializer(data).data)
+        profile = get_or_create_profile(request.user)
+        return Response(MeNicknameReadSerializer(profile).data)
 
-    @transaction.atomic
+    @extend_schema(
+        tags=["accounts"],
+        summary="Change my nickname",
+        request=MeNicknameUpdateSerializer,
+        description=(
+                "For the FIRST nickname set, do NOT send expected_nickname_updated_at.\n\n"
+                "Send expected_nickname_updated_at ONLY when updating an existing nickname "
+                "to enable optimistic locking and prevent concurrent updates."
+        ),
+        responses={
+            200: MeNicknameReadSerializer,
+            400: OpenApiResponse(description="Validation error / nickname conflict"),
+        },
+    )
     def patch(self, request):
-        profile = UserProfile.objects.select_for_update().get(user=request.user)
+        profile = get_or_create_profile(request.user)
 
-        serializer = ChangeNicknameSerializer(data=request.data)
+        serializer = MeNicknameUpdateSerializer(
+            data=request.data,
+            context={"profile": profile},
+        )
         serializer.is_valid(raise_exception=True)
+        profile = serializer.save()
 
-        expected = serializer.validated_data.get("expected_nickname_updated_at", None)
-        if "expected_nickname_updated_at" in serializer.validated_data:
-            expected = serializer.validated_data["expected_nickname_updated_at"]
-            if expected != profile.nickname_updated_at:
-                return Response(
-                    {"detail": "Nickname was changed already. Refresh and try again."},
-                    status=status.HTTP_409_CONFLICT,
-                )
-
-        try:
-            change_nickname(profile, serializer.validated_data["nickname"])
-        except DjangoValidationError as e:
-            return Response(e.message_dict, status=status.HTTP_400_BAD_REQUEST)
-
-        profile.refresh_from_db()
-        data = {
-            "nickname": profile.nickname,
-            "nickname_updated_at": profile.nickname_updated_at,
-        }
-        return Response(MeNicknameSerializer(data).data, status=status.HTTP_200_OK)
+        return Response(MeNicknameReadSerializer(profile).data)
