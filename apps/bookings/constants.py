@@ -1,3 +1,7 @@
+# booking rules
 MAX_BOOKING_DAYS_AHEAD = 180
 MAX_STAY_DAYS = 30
 MIN_STAY_DAYS = 1
+
+# cancellation
+CANCEL_DEADLINE_DAYS = 3

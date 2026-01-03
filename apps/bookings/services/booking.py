@@ -6,7 +6,9 @@ from apps.bookings.constants import (
     MAX_BOOKING_DAYS_AHEAD,
     MAX_STAY_DAYS,
     MIN_STAY_DAYS,
+    CANCEL_DEADLINE_DAYS,
 )
+
 
 def _has_date_overlap(*, listing, start_date, end_date):
     return Booking.objects.filter(
@@ -90,6 +92,14 @@ def cancel_booking(*, booking, user):
         BookingStatus.CONFIRMED,
     ):
         raise ValidationError("This booking cannot be cancelled.")
+
+    today = timezone.localdate()
+    cancel_deadline = booking.start_date - timezone.timedelta(days=CANCEL_DEADLINE_DAYS)
+
+    if today >= cancel_deadline:
+        raise ValidationError(
+            f"Cancellation is allowed only up to {CANCEL_DEADLINE_DAYS} days before check-in."
+        )
 
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = timezone.now()

@@ -10,7 +10,7 @@ from apps.reviews.serializers.review_edit import ReviewEditSerializer
 class ReviewEditView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewEditSerializer
-    queryset = Review.objects.not_removed()
+    queryset = Review.objects.all()  # было not_removed()
 
     @extend_schema(
         summary="Edit review",

@@ -1,8 +1,8 @@
 from django.core.exceptions import ValidationError
 
-from apps.reviews.models.review import Review
+from apps.reviews.models.review import Review, ReviewModerationStatus
 from apps.reviews.models.review_audit import ReviewAudit, ReviewAuditAction
-from apps.reviews.models.review import ReviewModerationStatus
+from apps.reviews.services.rating_aggregate import contributes_to_rating, apply_add, apply_remove
 
 
 ACTION_MAP = {
@@ -33,13 +33,15 @@ def moderate_review(*, review: Review, moderator, action: str, reason: str = "")
     if not (getattr(moderator, "is_staff", False) or getattr(moderator, "is_superuser", False)):
         raise ValidationError("Moderator permissions required.")
 
+    was_contributing = contributes_to_rating(review)
+
     try:
         new_status, audit_action, hidden = ACTION_MAP[action]
     except KeyError:
         raise ValidationError("Unknown moderation action.")
 
     from_status = review.moderation_status
-    to_status = from_status  # по умолчанию (если status не менялся)
+    to_status = from_status  # default if moderation_status not changed
 
     update_fields: list[str] = []
 
@@ -52,9 +54,16 @@ def moderate_review(*, review: Review, moderator, action: str, reason: str = "")
         review.is_hidden = hidden
         update_fields.append("is_hidden")
 
-    # If the action doesn't actually change anything, we simply log it, but don't touch the model.
     if update_fields:
         review.save(update_fields=update_fields)
+
+    now_contributing = contributes_to_rating(review)
+
+    # rating aggregates transition
+    if was_contributing and not now_contributing:
+        apply_remove(review)
+    elif not was_contributing and now_contributing:
+        apply_add(review)
 
     ReviewAudit.objects.create(
         review=review,

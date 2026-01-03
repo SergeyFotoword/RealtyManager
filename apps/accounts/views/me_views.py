@@ -16,7 +16,7 @@ from apps.accounts.serializers.me_nickname_serializers import (
 
 
 def get_or_create_profile(user) -> UserProfile:
-    profile, _ = UserProfile.objects.get_or_create(user=user)
+    profile, _ = UserProfile.objects.select_related("user").get_or_create(user=user)
     return profile
 
 class MeView(APIView):
@@ -52,7 +52,7 @@ class MeProfileUpdateView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
 
-        return Response(MeReadSerializer(profile).data)
+        return Response(MeReadSerializer(serializer.instance).data)
 
 
 class MeNicknameView(APIView):
