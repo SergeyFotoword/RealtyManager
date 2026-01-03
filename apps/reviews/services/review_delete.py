@@ -2,6 +2,7 @@ from django.core.exceptions import ValidationError
 
 from apps.reviews.models.review import Review, ReviewModerationStatus
 from apps.reviews.models.review_audit import ReviewAudit, ReviewAuditAction
+from apps.reviews.services.rating_aggregate import contributes_to_rating, apply_remove
 
 
 def _is_moderator(user) -> bool:
@@ -26,7 +27,11 @@ def delete_review(*, review: Review, actor) -> Review:
       - author -> USER_REMOVED
       - staff/superuser -> MODERATOR_REMOVED
     Also writes ReviewAudit with from_status/to_status.
+
+    IMPORTANT:
+    If the review contributed to rating aggregates, we remove its contribution.
     """
+    was_contributing = contributes_to_rating(review)
 
     if actor == review.reviewer:
         new_status, audit_action = DELETE_MAP["user"]
@@ -38,6 +43,10 @@ def delete_review(*, review: Review, actor) -> Review:
     from_status = review.moderation_status
     review.moderation_status = new_status
     review.save(update_fields=["moderation_status"])
+
+    # rating aggregates
+    if was_contributing:
+        apply_remove(review)
 
     ReviewAudit.objects.create(
         review=review,

@@ -1,5 +1,6 @@
 from apps.reviews.services.review import create_review
 from apps.reviews.tests.base import BaseReviewTest
+from apps.reviews.models.property_rating import PropertyRating
 
 
 class PropertyRatingPolicyTest(BaseReviewTest):
@@ -29,5 +30,4 @@ class PropertyRatingPolicyTest(BaseReviewTest):
             role=self.role_tenant,
         )
 
-        #  landlord → tenant must NOT create/update property ratings
-        assert not hasattr(self.property, "rating")
+        assert not PropertyRating.objects.filter(property=self.property).exists()

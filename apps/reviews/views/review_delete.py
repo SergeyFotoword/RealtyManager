@@ -10,7 +10,7 @@ from apps.reviews.serializers.review_delete import ReviewDeleteSerializer
 class ReviewDeleteView(UpdateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = ReviewDeleteSerializer
-    queryset = Review.objects.not_removed()
+    queryset = Review.objects.all()  # было not_removed()
 
     @extend_schema(
         summary="Delete review (soft delete)",

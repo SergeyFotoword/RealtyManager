@@ -86,10 +86,10 @@ class Review(models.Model):
 
     property_rating = models.ForeignKey(
         "reviews.PropertyRating",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
         related_name="reviews",
         null=True,
-        blank=False,
+        blank=True,
     )
 
     comment = models.TextField(

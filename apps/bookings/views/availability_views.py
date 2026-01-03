@@ -1,4 +1,3 @@
-from datetime import date
 from django.shortcuts import get_object_or_404
 from django.utils.dateparse import parse_date
 from rest_framework.views import APIView
@@ -48,7 +47,7 @@ class ListingAvailabilityView(APIView):
                 status=400,
             )
 
-        if start > end:
+        if start >= end:
             return Response(
                 {"detail": "Start date must be before end date."},
                 status=400,
@@ -56,8 +55,8 @@ class ListingAvailabilityView(APIView):
 
         blocked = get_blocked_intervals(
             listing=listing,
-            start=start,
-            end=end,
+            start_date=start,
+            end_date=end,
         )
 
         return Response(blocked, status=200)

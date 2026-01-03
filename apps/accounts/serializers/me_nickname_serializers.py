@@ -31,6 +31,12 @@ class MeNicknameUpdateSerializer(serializers.Serializer):
         return value
 
     def validate(self, attrs):
+        """
+        Optimistic locking lives here intentionally.
+
+        DO NOT move this logic to save():
+        DRF will normalize ValidationError and drop custom error codes.
+        """
         profile: UserProfile = self.context["profile"]
 
         expected = attrs.get("expected_nickname_updated_at")

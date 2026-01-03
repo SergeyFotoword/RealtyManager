@@ -8,17 +8,18 @@ from rest_framework.permissions import IsAuthenticated
 
 from drf_spectacular.utils import extend_schema, OpenApiResponse
 
-from apps.bookings.models import Booking
+from apps.bookings.models.booking import Booking
 from apps.bookings.services.checkin import (
     confirm_checkin,
     confirm_checkout,
 )
 
+
 class BookingCheckinView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary="Check-in booking",
+        summary="Check-in booking (landlord confirms)",
         responses={
             204: OpenApiResponse(description="Checked in"),
             400: OpenApiResponse(description="Business rule violation"),
@@ -33,7 +34,7 @@ class BookingCheckinView(APIView):
         try:
             confirm_checkin(
                 booking=booking,
-                user=request.user,
+                landlord=request.user,
             )
         except DjangoValidationError as e:
             return Response({"errors": e.messages}, status=400)
@@ -45,7 +46,7 @@ class BookingCheckoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     @extend_schema(
-        summary="Check-out booking",
+        summary="Check-out booking (landlord confirms)",
         responses={
             204: OpenApiResponse(description="Checked out"),
             400: OpenApiResponse(description="Business rule violation"),
@@ -60,7 +61,7 @@ class BookingCheckoutView(APIView):
         try:
             confirm_checkout(
                 booking=booking,
-                user=request.user,
+                landlord=request.user,
             )
         except DjangoValidationError as e:
             return Response({"errors": e.messages}, status=400)

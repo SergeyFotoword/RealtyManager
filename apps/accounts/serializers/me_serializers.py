@@ -10,7 +10,7 @@ class MeReadSerializer(serializers.ModelSerializer):
     is_staff = serializers.BooleanField(source="user.is_staff", read_only=True)
     is_superuser = serializers.BooleanField(source="user.is_superuser", read_only=True)
     roles = serializers.SerializerMethodField(read_only=True)
-    avatar_url = serializers.SerializerMethodField()
+    avatar_url = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = UserProfile
@@ -31,10 +31,12 @@ class MeReadSerializer(serializers.ModelSerializer):
         )
 
     def get_roles(self, obj: UserProfile):
-        user = obj.user
-        if hasattr(user, "roles"):
-            return list(user.roles.values_list("name", flat=True))
-        return []
+        # user = obj.user
+        # if hasattr(user, "roles"):
+        #     return list(user.roles.values_list("name", flat=True))
+        # return []
+        return list(obj.user.roles.values_list("name", flat=True))
+
 
     def get_avatar_url(self, obj):
         return obj.get_avatar_url()
