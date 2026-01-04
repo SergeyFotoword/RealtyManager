@@ -1,6 +1,9 @@
 import datetime
+
+from django.db import transaction
 from django.utils import timezone
 from django.core.exceptions import ValidationError
+
 from apps.bookings.models.booking import Booking, BookingStatus
 from apps.bookings.constants import (
     MAX_BOOKING_DAYS_AHEAD,
@@ -10,7 +13,11 @@ from apps.bookings.constants import (
 )
 
 
-def _has_date_overlap(*, listing, start_date, end_date):
+def _has_date_overlap(*, listing, start_date, end_date) -> bool:
+    """
+    Checks if there is any PENDING or CONFIRMED booking
+    overlapping with the given date range.
+    """
     return Booking.objects.filter(
         listing=listing,
         status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED],
@@ -18,7 +25,18 @@ def _has_date_overlap(*, listing, start_date, end_date):
         end_date__gt=start_date,
     ).exists()
 
-def create_booking(*, listing, tenant, start_date, end_date):
+
+def create_booking(*, listing, tenant, start_date, end_date) -> Booking:
+    """
+    Create a booking request.
+
+    Business rules:
+    - booking can be made only up to MAX_BOOKING_DAYS_AHEAD
+    - stay length must be between MIN_STAY_DAYS and MAX_STAY_DAYS
+    - tenant cannot book own listing
+    - no date overlap with existing PENDING or CONFIRMED bookings
+    """
+
     today = timezone.localdate()
     max_start_date = today + datetime.timedelta(days=MAX_BOOKING_DAYS_AHEAD)
 
@@ -28,6 +46,7 @@ def create_booking(*, listing, tenant, start_date, end_date):
         )
 
     stay_length = (end_date - start_date).days
+
     if stay_length > MAX_STAY_DAYS:
         raise ValidationError(
             f"Maximum stay is {MAX_STAY_DAYS} nights."
@@ -36,15 +55,15 @@ def create_booking(*, listing, tenant, start_date, end_date):
     if stay_length < MIN_STAY_DAYS:
         raise ValidationError("Minimum stay is 1 night.")
 
-    # You can't reserve your own
+    # Tenant cannot reserve own listing
     if listing.owner_id == tenant.id:
         raise ValidationError("You cannot book your own listing.")
 
-    # 2. Checking date intersections
+    # Date intersection check (PENDING + CONFIRMED)
     if _has_date_overlap(
-            listing=listing,
-            start_date=start_date,
-            end_date=end_date,
+        listing=listing,
+        start_date=start_date,
+        end_date=end_date,
     ):
         raise ValidationError(
             "This listing is already booked for the selected dates."
@@ -56,23 +75,64 @@ def create_booking(*, listing, tenant, start_date, end_date):
         landlord=listing.owner,
         start_date=start_date,
         end_date=end_date,
+        status=BookingStatus.PENDING,
     )
     return booking
 
 
-def confirm_booking(*, booking, landlord):
-    if booking.status != BookingStatus.PENDING:
-        raise ValidationError("Only pending bookings can be confirmed.")
+def confirm_booking(*, booking: Booking, landlord):
+    """
+    Confirm a booking.
+
+    Rules:
+    - only listing owner can confirm
+    - booking must be PENDING
+    - EXPIRED bookings cannot be confirmed
+    - operation is atomic and idempotent
+    """
 
     if booking.listing.owner_id != landlord.id:
         raise ValidationError("Only the listing owner can confirm this booking.")
 
-    booking.status = BookingStatus.CONFIRMED
-    booking.confirmed_at = timezone.now()
-    booking.save(update_fields=["status", "confirmed_at"])
+    # EXPIRED — hard stop
+    if booking.status == BookingStatus.EXPIRED:
+        raise ValidationError("Booking has expired.")
+
+    # Idempotency: already confirmed → ok
+    if booking.status == BookingStatus.CONFIRMED:
+        return booking
+
+    if booking.status != BookingStatus.PENDING:
+        raise ValidationError("Only pending bookings can be confirmed.")
+
+    # Race-condition protection
+    with transaction.atomic():
+        booking = Booking.objects.select_for_update().get(pk=booking.pk)
+
+        if booking.status == BookingStatus.EXPIRED:
+            raise ValidationError("Booking has expired.")
+
+        if booking.status == BookingStatus.CONFIRMED:
+            return booking
+
+        if booking.status != BookingStatus.PENDING:
+            raise ValidationError("Only pending bookings can be confirmed.")
+
+        booking.status = BookingStatus.CONFIRMED
+        booking.confirmed_at = timezone.now()
+        booking.save(update_fields=["status", "confirmed_at"])
+
+    return booking
 
 
-def reject_booking(*, booking, landlord):
+def reject_booking(*, booking: Booking, landlord):
+    """
+    Reject a pending booking by listing owner.
+    """
+
+    if booking.status == BookingStatus.EXPIRED:
+        raise ValidationError("Booking has expired.")
+
     if booking.status != BookingStatus.PENDING:
         raise ValidationError("Only pending bookings can be rejected.")
 
@@ -83,7 +143,19 @@ def reject_booking(*, booking, landlord):
     booking.save(update_fields=["status"])
 
 
-def cancel_booking(*, booking, user):
+def cancel_booking(*, booking: Booking, user):
+    """
+    Cancel a booking by tenant.
+
+    Rules:
+    - only tenant can cancel own booking
+    - only PENDING or CONFIRMED bookings
+    - cancellation deadline enforced
+    """
+
+    if booking.status == BookingStatus.EXPIRED:
+        raise ValidationError("Booking has expired.")
+
     if booking.tenant_id != user.id:
         raise ValidationError("You can cancel only your own booking.")
 
@@ -94,11 +166,14 @@ def cancel_booking(*, booking, user):
         raise ValidationError("This booking cannot be cancelled.")
 
     today = timezone.localdate()
-    cancel_deadline = booking.start_date - timezone.timedelta(days=CANCEL_DEADLINE_DAYS)
+    cancel_deadline = booking.start_date - timezone.timedelta(
+        days=CANCEL_DEADLINE_DAYS
+    )
 
     if today >= cancel_deadline:
         raise ValidationError(
-            f"Cancellation is allowed only up to {CANCEL_DEADLINE_DAYS} days before check-in."
+            f"Cancellation is allowed only up to "
+            f"{CANCEL_DEADLINE_DAYS} days before check-in."
         )
 
     booking.status = BookingStatus.CANCELLED

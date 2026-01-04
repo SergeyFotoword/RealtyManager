@@ -8,7 +8,7 @@ class BookingStatus(models.TextChoices):
     REJECTED = "rejected", "Rejected"
     CANCELLED = "cancelled", "Cancelled"
     COMPLETED = "completed", "Completed"
-
+    EXPIRED = "expired", "Expired"
 
 class Booking(models.Model):
     listing = models.ForeignKey(

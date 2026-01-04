@@ -15,7 +15,6 @@ from apps.listings.serializers.listing_list import ListingListSerializer
         "- Only owner can update\n"
         "- Deleted listings cannot be updated\n"
         "- Status can be switched between ACTIVE / INACTIVE\n"
-        "- INACTIVE listings are hidden from public API\n"
     ),
     request=ListingUpdateSerializer,
     responses={

@@ -26,7 +26,6 @@ class ListingDeleteView(DestroyAPIView):
     permission_classes = [IsAuthenticated, IsOwner]
 
     def get_queryset(self):
-        # You can't delete something that's already been deleted
         return Listing.objects.filter(is_deleted=False)
 
     def perform_destroy(self, instance):

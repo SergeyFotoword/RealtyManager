@@ -17,3 +17,18 @@ class IsSelf(BasePermission):
     def has_permission(self, request, view):
         user_id = view.kwargs.get("user_id")
         return request.user.is_authenticated and request.user.id == user_id
+
+
+class IsLandlord(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.has_role("LANDLORD")
+        )
+
+class IsTenant(BasePermission):
+    def has_permission(self, request, view):
+        return (
+            request.user.is_authenticated
+            and request.user.has_role("TENANT")
+        )

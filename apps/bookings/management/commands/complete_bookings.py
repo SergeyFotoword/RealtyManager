@@ -11,4 +11,4 @@ class Command(BaseCommand):
             self.style.SUCCESS(f"Completed {updated} bookings.")
         )
 
-# запускаем так: python manage.py complete_bookings
+# run it like this: python manage.py complete_bookings

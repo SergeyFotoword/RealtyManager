@@ -1,0 +1,2 @@
+from .property_list import PropertyListCreateView
+from .property_detail import PropertyDetailView
