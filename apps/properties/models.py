@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.utils.text import slugify
 
@@ -29,7 +30,13 @@ class Amenity(models.Model):
 
     def save(self, *args, **kwargs):
         if not self.slug:
-            self.slug = slugify(self.name)
+            base_slug = slugify(self.name)
+            slug = base_slug
+            i = 1
+            while Amenity.objects.filter(slug=slug).exclude(pk=self.pk).exists():
+                slug = f"{base_slug}-{i}"
+                i += 1
+            self.slug = slug
         super().save(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -37,6 +44,22 @@ class Amenity(models.Model):
 
 
 class Property(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="properties",
+        null=True,
+        blank=True,
+    )
+
+    location = models.ForeignKey(
+        "locations.Location",
+        on_delete=models.PROTECT,
+        related_name="properties",
+        null=True,
+        blank=True,
+    )
+
     property_type = models.CharField(
         max_length=32,
         choices=PropertyType.choices,

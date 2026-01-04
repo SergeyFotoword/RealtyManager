@@ -3,6 +3,13 @@ from apps.listings.models import Listing, ListingStatus
 
 
 class ListingUpdateSerializer(serializers.ModelSerializer):
+    """
+    Update Listing.
+
+    - Only owner (through permis
+    - Status is limited by enum
+    """
+
     class Meta:
         model = Listing
         fields = (

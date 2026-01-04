@@ -29,5 +29,20 @@ class Location(models.Model):
     lat = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
     lng = models.DecimalField(max_digits=9, decimal_places=6, null=True, blank=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=["country"]),
+            models.Index(fields=["state"]),
+            models.Index(fields=["city"]),
+            models.Index(fields=["postal_code"]),
+            models.Index(fields=["state", "city"]),
+        ]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["country", "state", "city", "postal_code"],
+                name="unique_location_city_zip",
+            )
+        ]
+
     def __str__(self):
         return f"{self.postal_code} {self.city}, {self.state}"

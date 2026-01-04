@@ -13,10 +13,11 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include("apps.reviews.urls")),
-    path("api/", include("apps.routers")),
-    path("api/", include("apps.listings.urls")),
-    path("api/", include("apps.properties.urls")),
+    path("api/accounts/", include("apps.accounts.urls")),
+    path("api/bookings/", include("apps.bookings.urls")),
+    path("api/reviews/", include("apps.reviews.urls")),
+    path("api/listings/", include("apps.listings.urls")),
+    path("api/properties/", include("apps.properties.urls")),
     path("api/auth/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("api/auth/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
