@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>Unfortunately, your booking request for <strong>{{ listing.title }}</strong> was rejected.</p>
+
+  <p>You can search for alternative listings on our platform.</p>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

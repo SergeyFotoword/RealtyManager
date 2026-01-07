@@ -1,0 +1,11 @@
+Hello {{ user.first_name|default:user.username }},
+
+You have received a new review.
+
+Rating: {{ review.rating }}/5
+
+Comment:
+"{{ review.comment }}"
+
+Best regards,
+{{ platform_name }}

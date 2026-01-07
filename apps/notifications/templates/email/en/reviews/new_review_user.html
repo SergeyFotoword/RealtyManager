@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>You have received a new review.</p>
+
+  <p><strong>Rating:</strong> {{ review.rating }}/5</p>
+
+  <p><strong>Comment:</strong><br>
+  “{{ review.comment }}”</p>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

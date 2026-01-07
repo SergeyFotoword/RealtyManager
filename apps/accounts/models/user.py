@@ -7,7 +7,10 @@ class User(AbstractUser):
     roles = models.ManyToManyField(Role, related_name="users", blank=True)
 
     def has_role(self, role_name: str) -> bool:
-        return self.roles.filter(name=role_name).exists()
+        role_name = (role_name or "").strip()
+        if not role_name:
+            return False
+        return self.roles.filter(name__iexact=role_name).exists()
 
     def __str__(self):
         return self.username

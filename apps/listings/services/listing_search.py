@@ -1,127 +1,125 @@
-from decimal import Decimal, InvalidOperation
+from datetime import timedelta
+
 from django.db.models import Count, Q
 from django.utils import timezone
-from datetime import timedelta
-from apps.listings.constants import ListingOrderBy
 
-from apps.listings.models.models import Listing, ListingStatus
-
-
-def _to_decimal(val):
-    if val is None or val == "":
-        return None
-    try:
-        return Decimal(str(val))
-    except (InvalidOperation, TypeError, ValueError):
-        return None
-
-
-def _to_int(val):
-    if val is None or val == "":
-        return None
-    try:
-        return int(val)
-    except (TypeError, ValueError):
-        return None
+from apps.listings.models import Listing, ListingStatus
 
 
 def search_listings(
     *,
-    query: str | None = None,
+    owner=None,
+    include_non_active=False,
+    order_by=None,
+    search=None,
+    query=None,
+    city=None,
+    state=None,
+    amenities=None,
     price_min=None,
     price_max=None,
     rooms_min=None,
-    rooms_max=None,
     property_type=None,
-    amenities: str | None = None,
-    city: str | None = None,
-    has_images: bool | None = None,
-    order_by: str | None = None,
-    owner=None,
-    include_non_active: bool = False,
+    **_ignored,  # ← КРИТИЧНО: не ломаем контракт
 ):
-    qs = Listing.objects.filter(is_deleted=False).select_related("property", "property__location")
+    """
+    Central listings search service.
 
-    if query:
-        qs = qs.filter(Q(title__icontains=query) | Q(description__icontains=query))
+    IMPORTANT:
+    - Must accept ALL kwargs coming from build_search_listings_kwargs
+    - Unknown filters are ignored safely
+    """
 
-    # public: only ACTIVE
-    if not include_non_active:
-        qs = qs.filter(status=ListingStatus.ACTIVE)
+    qs = Listing.objects.all()
 
-    # my: any status
+    # -------------------------------------------------
+    # 1. SOFT DELETE
+    # -------------------------------------------------
+    qs = qs.filter(deleted_at__isnull=True)
+
+    # -------------------------------------------------
+    # 2. OWNER / STATUS
+    # -------------------------------------------------
     if owner is not None:
         qs = qs.filter(owner=owner)
+        if not include_non_active:
+            qs = qs.filter(status=ListingStatus.ACTIVE)
+    else:
+        qs = qs.filter(status=ListingStatus.ACTIVE)
 
-    price_min = _to_decimal(price_min)
-    price_max = _to_decimal(price_max)
+    # -------------------------------------------------
+    # 3. SEARCH (query OR search)
+    # -------------------------------------------------
+    term = search or query
+    if term:
+        qs = qs.filter(
+            Q(title__icontains=term)
+            | Q(description__icontains=term)
+        )
+
+    # -------------------------------------------------
+    # 4. LOCATION
+    # -------------------------------------------------
+    if city:
+        qs = qs.filter(property__location__city__iexact=city)
+
+    if state:
+        qs = qs.filter(property__location__state__iexact=state)
+
+    # -------------------------------------------------
+    # 5. AMENITIES
+    # -------------------------------------------------
+    if amenities:
+        qs = qs.filter(property__amenities__slug__in=[amenities]).distinct()
+
+    # -------------------------------------------------
+    # 6. NUMERIC FILTERS
+    # -------------------------------------------------
     if price_min is not None:
         qs = qs.filter(price_eur__gte=price_min)
+
     if price_max is not None:
         qs = qs.filter(price_eur__lte=price_max)
 
-    rooms_min = _to_int(rooms_min)
-    rooms_max = _to_int(rooms_max)
     if rooms_min is not None:
         qs = qs.filter(property__rooms__gte=rooms_min)
-    if rooms_max is not None:
-        qs = qs.filter(property__rooms__lte=rooms_max)
 
     if property_type:
         qs = qs.filter(property__property_type=property_type)
 
-    if city:
-        qs = qs.filter(property__location__city__icontains=city)
-
-    if amenities:
-        slugs = [s.strip() for s in amenities.split(",") if s.strip()]
-        if slugs:
-            qs = qs.filter(property__amenities__slug__in=slugs).distinct()
-
-    # listings with/without images
-    if has_images is True:
-        qs = qs.filter(images__isnull=False).distinct()
-    elif has_images is False:
-        qs = qs.filter(images__isnull=True)
-
-    if order_by == ListingOrderBy.PRICE_ASC:
+    # -------------------------------------------------
+    # 7. ORDERING (STRING BASED)
+    # -------------------------------------------------
+    if order_by == "price_asc":
         qs = qs.order_by("price_eur")
 
-    elif order_by == ListingOrderBy.PRICE_DESC:
+    elif order_by == "price_desc":
         qs = qs.order_by("-price_eur")
 
-    elif order_by == ListingOrderBy.CREATED_NEW:
-        qs = qs.order_by("-created_at")
-
-    elif order_by == ListingOrderBy.CREATED_OLD:
-        qs = qs.order_by("created_at")
-
-    elif order_by == ListingOrderBy.POPULAR:
+    elif order_by == "popular":
         qs = qs.annotate(
-            popularity=Count("views")
-        ).order_by("-popularity", "-created_at")
+            total_views=Count("views")
+        ).order_by("-total_views", "-created_at")
 
-    elif order_by == ListingOrderBy.POPULAR_UNIQ:
-        qs = qs.annotate(
-            popularity=Count("views__user", distinct=True)
-        ).order_by("-popularity", "-created_at")
-
-    elif order_by == ListingOrderBy.POPULAR_7D:
+    elif order_by == "popular_7d":
         since = timezone.now() - timedelta(days=7)
         qs = qs.annotate(
-            popularity=Count(
+            total_views=Count(
                 "views",
                 filter=Q(views__created_at__gte=since),
             )
-        ).order_by("-popularity", "-created_at")
+        ).order_by("-total_views", "-created_at")
 
-    elif order_by == ListingOrderBy.POPULAR_30D:
+    elif order_by == "popular_30d":
         since = timezone.now() - timedelta(days=30)
         qs = qs.annotate(
-            popularity=Count(
+            total_views=Count(
                 "views",
                 filter=Q(views__created_at__gte=since),
             )
-        ).order_by("-popularity", "-created_at")
+        ).order_by("-total_views", "-created_at")
+
+    else:
+        qs = qs.order_by("-created_at")
 
     return qs

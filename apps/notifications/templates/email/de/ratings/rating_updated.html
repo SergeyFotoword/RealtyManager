@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hallo {{ user.first_name|default:user.username }},</p>
+
+  <p>Ihre Bewertung wurde aktualisiert.</p>
+
+  <p><strong>Aktuelle Bewertung:</strong> {{ rating }}</p>
+
+  <p>Mit freundlichen Grüßen<br>{{ platform_name }}</p>
+</body></html>

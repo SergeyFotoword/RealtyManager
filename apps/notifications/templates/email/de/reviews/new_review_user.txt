@@ -1,0 +1,11 @@
+Hallo {{ user.first_name|default:user.username }},
+
+Sie haben eine neue Bewertung erhalten.
+
+Bewertung: {{ review.rating }}/5
+
+Kommentar:
+„{{ review.comment }}“
+
+Mit freundlichen Grüßen
+{{ platform_name }}

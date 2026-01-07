@@ -30,10 +30,7 @@ INSTALLED_APPS = [
     'apps.locations',
     'apps.bookings',
     'apps.reviews',
-    # 'apps.locations.apps.LocationsConfig',
-    # 'apps.properties.apps.PropertiesConfig',
-    # 'apps.listings.apps.ListingsConfig',
-    # 'apps.accounts.apps.AccountsConfig',
+    'apps.notifications',
 ]
 
 MIDDLEWARE = [
@@ -132,3 +129,7 @@ STATICFILES_DIRS = [BASE_DIR / "static"]
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# emails
+DEFAULT_FROM_EMAIL = "no-reply@realtymanager.local"
+PLATFORM_NAME = "RealtyManager"

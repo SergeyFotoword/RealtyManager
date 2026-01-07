@@ -1,0 +1,8 @@
+Hallo {{ user.first_name|default:user.username }},
+
+leider wurde Ihre Buchungsanfrage für „{{ listing.title }}“ abgelehnt.
+
+Sie können auf unserer Plattform nach alternativen Angeboten suchen.
+
+Mit freundlichen Grüßen
+{{ platform_name }}

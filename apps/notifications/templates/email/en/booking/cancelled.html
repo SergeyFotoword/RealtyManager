@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>The booking for <strong>{{ listing.title }}</strong> was cancelled by the guest.</p>
+
+  <p>The dates are now available again.</p>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

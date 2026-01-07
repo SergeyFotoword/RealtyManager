@@ -1,0 +1,13 @@
+Hallo {{ user.first_name|default:user.username }},
+
+Sie haben eine neue Buchungsanfrage für Ihre Anzeige „{{ listing.title }}“ erhalten.
+
+Check-in: {{ booking.start_date }}
+Check-out: {{ booking.end_date }}
+
+Gast: {{ tenant.get_full_name|default:tenant.username }}
+
+Bitte prüfen Sie die Anfrage und entscheiden Sie.
+
+Mit freundlichen Grüßen
+{{ platform_name }}

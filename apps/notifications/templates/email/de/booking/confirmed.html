@@ -1,0 +1,13 @@
+<!doctype html>
+<html><body>
+  <p>Hallo {{ user.first_name|default:user.username }},</p>
+
+  <p>Gute Nachrichten! Ihre Buchung für <strong>{{ listing.title }}</strong> wurde bestätigt.</p>
+
+  <ul>
+    <li><strong>Check-in:</strong> {{ booking.start_date }}</li>
+    <li><strong>Check-out:</strong> {{ booking.end_date }}</li>
+  </ul>
+
+  <p>Mit freundlichen Grüßen<br>{{ platform_name }}</p>
+</body></html>

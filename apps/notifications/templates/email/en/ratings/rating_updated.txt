@@ -1,0 +1,8 @@
+Hello {{ user.first_name|default:user.username }},
+
+Your rating was updated.
+
+Current rating: {{ rating }}
+
+Best regards,
+{{ platform_name }}
