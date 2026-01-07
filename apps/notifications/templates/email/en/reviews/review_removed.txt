@@ -1,0 +1,8 @@
+Hello {{ user.first_name|default:user.username }},
+
+Your review was removed by moderation.
+
+If you believe this is a mistake, please contact support.
+
+Best regards,
+{{ platform_name }}

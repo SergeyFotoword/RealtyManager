@@ -10,6 +10,7 @@ from apps.locations.models import Location
 from apps.properties.models import Property, PropertyType
 from apps.listings.models import Listing
 from apps.accounts.models.user import User
+from apps.bookings.models.booking import BookingStatus
 
 
 class BookingCancelDeadlineTest(BaseBookingTest):
@@ -59,7 +60,7 @@ class BookingCancelDeadlineTest(BaseBookingTest):
         )
 
         booking.refresh_from_db()
-        self.assertEqual(booking.status, booking.status.CANCELLED)
+        self.assertEqual(booking.status, BookingStatus.CANCELLED)
 
     def test_cancel_on_deadline_day_is_blocked(self):
         start_date = timezone.localdate() + datetime.timedelta(

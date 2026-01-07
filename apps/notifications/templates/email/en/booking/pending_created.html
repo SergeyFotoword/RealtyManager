@@ -1,0 +1,14 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>You have received a new booking request for <strong>{{ listing.title }}</strong>.</p>
+
+  <ul>
+    <li><strong>Check-in:</strong> {{ booking.start_date }}</li>
+    <li><strong>Check-out:</strong> {{ booking.end_date }}</li>
+    <li><strong>Guest:</strong> {{ tenant.get_full_name|default:tenant.username }}</li>
+  </ul>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

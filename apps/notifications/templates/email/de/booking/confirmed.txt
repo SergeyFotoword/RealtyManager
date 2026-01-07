@@ -1,0 +1,9 @@
+Hallo {{ user.first_name|default:user.username }},
+
+gute Nachrichten! Ihre Buchung für „{{ listing.title }}“ wurde bestätigt.
+
+Check-in: {{ booking.start_date }}
+Check-out: {{ booking.end_date }}
+
+Mit freundlichen Grüßen
+{{ platform_name }}

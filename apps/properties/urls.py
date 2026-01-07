@@ -3,8 +3,10 @@ from django.urls import path
 from apps.properties.views.amenity_list import AmenityListView
 from apps.properties.views.property_list import PropertyListCreateView
 from apps.properties.views.property_detail import PropertyDetailView
+from apps.properties.views.register_view import PropertyChoicesView
 
 urlpatterns = [
+    path("choices/", PropertyChoicesView.as_view(), name="property-choices"),
     path("amenities/", AmenityListView.as_view(), name="amenity-list"),
     # Property CRUD
     path("", PropertyListCreateView.as_view(), name="property-list-create"),

@@ -1,0 +1,8 @@
+Hallo {{ user.first_name|default:user.username }},
+
+die Buchung für „{{ listing.title }}“ wurde vom Gast storniert.
+
+Die Daten sind jetzt wieder verfügbar.
+
+Mit freundlichen Grüßen
+{{ platform_name }}

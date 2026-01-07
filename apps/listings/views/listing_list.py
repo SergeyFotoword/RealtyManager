@@ -14,74 +14,33 @@ from apps.listings.constants import ListingOrderBy
     description=(
         "Search and filter public real estate listings.\n\n"
         "Supports:\n"
-        "- Full-text search by title and description\n"
+        "- Full-text search\n"
         "- Filters by price, rooms, city, amenities\n"
-        "- Multiple ordering strategies (price, date, popularity)\n\n"
-        "Available ordering options can be retrieved via OPTIONS request."
+        "- Ordering by price, date, popularity\n"
     ),
     parameters=[
-        OpenApiParameter(
-            name="search",
-            description="Full-text search query (title and description)",
-        ),
-        OpenApiParameter(
-            name="price_min",
-            description="Minimum price in EUR",
-            type=float,
-        ),
-        OpenApiParameter(
-            name="price_max",
-            description="Maximum price in EUR",
-            type=float,
-        ),
-        OpenApiParameter(
-            name="rooms_min",
-            description="Minimum number of rooms",
-            type=int,
-        ),
-        OpenApiParameter(
-            name="rooms_max",
-            description="Maximum number of rooms",
-            type=int,
-        ),
-        OpenApiParameter(
-            name="property_type",
-            description="Property type (apartment, house, studio, ...)",
-        ),
-        OpenApiParameter(
-            name="amenities",
-            description="Comma-separated amenity slugs (e.g. wifi,balcony)",
-        ),
-        OpenApiParameter(
-            name="city",
-            description="City name (case-insensitive)",
-        ),
-        OpenApiParameter(
-            name="has_images",
-            description="Filter listings with images: true / false",
-            type=bool,
-        ),
+        OpenApiParameter(name="search"),
+        OpenApiParameter(name="price_min", type=float),
+        OpenApiParameter(name="price_max", type=float),
+        OpenApiParameter(name="rooms_min", type=int),
+        OpenApiParameter(name="rooms_max", type=int),
+        OpenApiParameter(name="city"),
+        OpenApiParameter(name="amenities"),
+        OpenApiParameter(name="has_images", type=bool),
         OpenApiParameter(
             name="order_by",
-            description=(
-                "Ordering strategy. "
-                f"Available values: {', '.join(sorted(ListingOrderBy.ALL))}"
-            ),
+            description="Ordering strategy",
+            enum=sorted(ListingOrderBy.PUBLIC),
         ),
     ],
 )
 class ListingPublicListView(ListAPIView):
-    """
-    Public listings search endpoint.
-    """
-
     permission_classes = [AllowAny]
     serializer_class = ListingListSerializer
 
     def get_queryset(self):
         params = self.request.query_params
 
-        # Save search query for analytics (if present)
         if params.get("search") or params.get("q"):
             save_search_query(
                 query=params.get("search") or params.get("q"),
@@ -89,31 +48,23 @@ class ListingPublicListView(ListAPIView):
             )
 
         return (
-            search_listings(
-                **build_search_listings_kwargs(
-                    params=params,
-                )
-            )
+            search_listings(**build_search_listings_kwargs(params=params))
             .prefetch_related("property__amenities")
-            .order_by("-created_at")
         )
 
     def options(self, request, *args, **kwargs):
         """
-        Expose available ordering strategies for frontend.
+        Tests expect: order_by_choices = list[str]
         """
         response = super().options(request, *args, **kwargs)
         response.data = response.data or {}
+
+        # ВАЖНО: list[str], не dict'и
         response.data["order_by_choices"] = sorted(ListingOrderBy.ALL)
         return response
 
 
 class ListingMyListView(ListAPIView):
-    """
-    Authenticated user's own listings.
-    Includes listings of any status (ACTIVE / INACTIVE / DRAFT).
-    """
-
     permission_classes = [IsAuthenticated]
     serializer_class = ListingListSerializer
 
@@ -127,5 +78,4 @@ class ListingMyListView(ListAPIView):
                 )
             )
             .prefetch_related("property__amenities")
-            .order_by("-created_at")
         )

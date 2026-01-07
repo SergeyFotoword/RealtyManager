@@ -69,6 +69,7 @@ def create_booking(*, listing, tenant, start_date, end_date) -> Booking:
             "This listing is already booked for the selected dates."
         )
 
+
     booking = Booking.objects.create(
         listing=listing,
         tenant=tenant,
@@ -77,6 +78,11 @@ def create_booking(*, listing, tenant, start_date, end_date) -> Booking:
         end_date=end_date,
         status=BookingStatus.PENDING,
     )
+
+    # notice to landlord
+    from apps.notifications.services.booking_notifications import BookingNotificationService
+    BookingNotificationService.pending_created(booking)
+
     return booking
 
 
@@ -122,6 +128,9 @@ def confirm_booking(*, booking: Booking, landlord):
         booking.confirmed_at = timezone.now()
         booking.save(update_fields=["status", "confirmed_at"])
 
+    from apps.notifications.services.booking_notifications import BookingNotificationService
+    BookingNotificationService.confirmed(booking)
+
     return booking
 
 
@@ -142,6 +151,10 @@ def reject_booking(*, booking: Booking, landlord):
     booking.status = BookingStatus.REJECTED
     booking.save(update_fields=["status"])
 
+    from apps.notifications.services.booking_notifications import BookingNotificationService
+    BookingNotificationService.rejected(booking)
+
+    return booking
 
 def cancel_booking(*, booking: Booking, user):
     """
@@ -179,3 +192,8 @@ def cancel_booking(*, booking: Booking, user):
     booking.status = BookingStatus.CANCELLED
     booking.cancelled_at = timezone.now()
     booking.save(update_fields=["status", "cancelled_at"])
+
+    from apps.notifications.services.booking_notifications import BookingNotificationService
+    BookingNotificationService.cancelled(booking)
+
+    return booking

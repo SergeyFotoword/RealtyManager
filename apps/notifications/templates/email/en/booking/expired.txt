@@ -1,0 +1,8 @@
+Hello {{ user.first_name|default:user.username }},
+
+Your booking request for "{{ listing.title }}" has expired because no action was taken in time.
+
+You are welcome to submit a new request.
+
+Best regards,
+{{ platform_name }}

@@ -1,0 +1,8 @@
+Hello {{ user.first_name|default:user.username }},
+
+Unfortunately, your booking request for "{{ listing.title }}" was rejected.
+
+You can search for alternative listings on our platform.
+
+Best regards,
+{{ platform_name }}

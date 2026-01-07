@@ -1,0 +1,8 @@
+Hello {{ user.first_name|default:user.username }},
+
+The booking for "{{ listing.title }}" was cancelled by the guest.
+
+The dates are now available again.
+
+Best regards,
+{{ platform_name }}

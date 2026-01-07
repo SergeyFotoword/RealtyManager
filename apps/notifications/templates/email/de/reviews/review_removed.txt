@@ -1,0 +1,8 @@
+Hallo {{ user.first_name|default:user.username }},
+
+Ihre Bewertung wurde durch die Moderation entfernt.
+
+Falls Sie glauben, dass dies ein Fehler ist, kontaktieren Sie bitte den Support.
+
+Mit freundlichen Grüßen
+{{ platform_name }}

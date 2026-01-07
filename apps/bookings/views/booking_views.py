@@ -1,19 +1,19 @@
-import datetime
-
 from django.apps import apps
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from drf_spectacular.utils import extend_schema, OpenApiExample
 from rest_framework import status
 from rest_framework.exceptions import ValidationError as DRFValidationError
+from rest_framework.generics import CreateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.accounts.permissions import IsTenant, IsLandlord
 from apps.bookings.models.booking import Booking
+from apps.bookings.serializers.booking_serializers import BookingCreateSerializer, BookingListSerializer
 from apps.bookings.services.booking import (
-    create_booking,
+    # create_booking,
     confirm_booking,
     reject_booking,
     cancel_booking,
@@ -47,8 +47,9 @@ def _booking_to_dict(b: Booking) -> dict:
     }
 
 
-class BookingCreateView(APIView):
+class BookingCreateView(CreateAPIView):
     permission_classes = [IsAuthenticated, IsTenant]
+    serializer_class = BookingCreateSerializer
 
     @extend_schema(
         summary="Create booking",
@@ -58,49 +59,11 @@ class BookingCreateView(APIView):
             "- Booking created with PENDING status\n"
             "- landlord is resolved from listing.owner\n"
         ),
-        examples=[
-            OpenApiExample(
-                "Create booking",
-                value={
-                    "listing_id": 10,
-                    "start_date": "2026-03-01",
-                    "end_date": "2026-03-10",
-                },
-            )
-        ],
-        responses={201: dict, 400: dict},
+        responses={201: BookingListSerializer, 400: dict},
     )
-    def post(self, request):
-        data = request.data
-
-        try:
-            listing = Listing.objects.select_related("owner").get(
-                id=data.get("listing_id")
-            )
-        except Listing.DoesNotExist:
-            raise DRFValidationError({"listing_id": "Listing not found."})
-
-        try:
-            start_date = datetime.date.fromisoformat(data.get("start_date"))
-            end_date = datetime.date.fromisoformat(data.get("end_date"))
-        except Exception:
-            raise DRFValidationError("Invalid date format. Use YYYY-MM-DD.")
-
-        try:
-            booking = create_booking(
-                listing=listing,
-                tenant=request.user,
-                landlord=listing.owner,
-                start_date=start_date,
-                end_date=end_date,
-            )
-        except DjangoValidationError as e:
-            _raise_drf_error(e)
-
-        return Response(
-            _booking_to_dict(booking),
-            status=status.HTTP_201_CREATED,
-        )
+    def create(self, request, *args, **kwargs):
+        response = super().create(request, *args, **kwargs)
+        return response
 
 
 class MyBookingsView(APIView):
@@ -116,7 +79,7 @@ class MyBookingsView(APIView):
 
 
 class BookingConfirmView(APIView):
-    permission_classes = [IsAuthenticated, IsLandlord]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="Confirm booking",
@@ -124,10 +87,8 @@ class BookingConfirmView(APIView):
         responses={200: dict},
     )
     def post(self, request, booking_id: int):
-        booking = Booking.objects.filter(
-            id=booking_id,
-            landlord=request.user,
-        ).first()
+        # IMPORTANT: do NOT filter by landlord here — that causes false 404
+        booking = Booking.objects.filter(id=booking_id).first()
 
         if not booking:
             return Response(
@@ -145,17 +106,15 @@ class BookingConfirmView(APIView):
 
 
 class BookingRejectView(APIView):
-    permission_classes = [IsAuthenticated, IsLandlord]
+    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="Reject booking",
         responses={200: dict},
     )
     def post(self, request, booking_id: int):
-        booking = Booking.objects.filter(
-            id=booking_id,
-            landlord=request.user,
-        ).first()
+        # IMPORTANT: do NOT filter by landlord here — that causes false 404
+        booking = Booking.objects.filter(id=booking_id).first()
 
         if not booking:
             return Response(
@@ -180,10 +139,8 @@ class BookingCancelView(APIView):
         responses={200: dict},
     )
     def post(self, request, booking_id: int):
-        booking = Booking.objects.filter(
-            id=booking_id,
-            tenant=request.user,
-        ).first()
+        # IMPORTANT: do NOT filter by tenant here — service validates ownership
+        booking = Booking.objects.filter(id=booking_id).first()
 
         if not booking:
             return Response(

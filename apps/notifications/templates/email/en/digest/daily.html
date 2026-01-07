@@ -1,0 +1,16 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>Here is your activity summary for the last 24 hours:</p>
+
+  <ul>
+    {% for log in logs %}
+      <li>
+        {{ log.sent_at|date:"Y-m-d H:i" }} — {{ log.subject }}
+      </li>
+    {% endfor %}
+  </ul>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hello {{ user.first_name|default:user.username }},</p>
+
+  <p>Your booking request for <strong>{{ listing.title }}</strong> has expired because no action was taken in time.</p>
+
+  <p>You are welcome to submit a new request.</p>
+
+  <p>Best regards,<br>{{ platform_name }}</p>
+</body></html>

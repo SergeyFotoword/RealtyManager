@@ -1,0 +1,8 @@
+Hallo {{ user.first_name|default:user.username }},
+
+Ihre Bewertung wurde aktualisiert.
+
+Aktuelle Bewertung: {{ rating }}
+
+Mit freundlichen Grüßen
+{{ platform_name }}

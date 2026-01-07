@@ -9,13 +9,17 @@ class ListingOrderBy:
     POPULAR_7D = "popular_7d"
     POPULAR_30D = "popular_30d"
 
-    ALL = {
+    PUBLIC = {
         PRICE_ASC,
         PRICE_DESC,
         CREATED_NEW,
         CREATED_OLD,
-        POPULAR,
-        POPULAR_UNIQ,
         POPULAR_7D,
         POPULAR_30D,
+    }
+
+    ALL = {
+        *PUBLIC,
+        POPULAR,
+        POPULAR_UNIQ,
     }

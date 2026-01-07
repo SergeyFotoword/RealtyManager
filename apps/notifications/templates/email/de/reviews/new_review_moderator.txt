@@ -1,0 +1,7 @@
+Eine neue Bewertung wurde eingereicht und muss moderiert werden.
+
+Autor: {{ review.author }}
+Ziel: {{ review.target }}
+Bewertung: {{ review.rating }}/5
+
+Bitte prüfen Sie die Bewertung im Admin-Bereich.

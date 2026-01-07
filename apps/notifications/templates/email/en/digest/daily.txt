@@ -1,0 +1,10 @@
+Hello {{ user.first_name|default:user.username }},
+
+Here is your activity summary for the last 24 hours:
+
+{% for log in logs %}
+- {{ log.sent_at|date:"Y-m-d H:i" }} — {{ log.subject }}
+{% endfor %}
+
+Best regards,
+{{ platform_name }}

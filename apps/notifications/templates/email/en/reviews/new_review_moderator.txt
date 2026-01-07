@@ -1,0 +1,7 @@
+A new review has been submitted and requires moderation.
+
+Author: {{ review.author }}
+Target: {{ review.target }}
+Rating: {{ review.rating }}/5
+
+Please review it in the admin panel.

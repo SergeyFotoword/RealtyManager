@@ -1,0 +1,13 @@
+Hello {{ user.first_name|default:user.username }},
+
+You have received a new booking request for your listing "{{ listing.title }}".
+
+Check-in: {{ booking.start_date }}
+Check-out: {{ booking.end_date }}
+
+Guest: {{ tenant.get_full_name|default:tenant.username }}
+
+Please review the request and take action.
+
+Best regards,
+{{ platform_name }}

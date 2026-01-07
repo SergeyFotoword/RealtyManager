@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hallo {{ user.first_name|default:user.username }},</p>
+
+  <p>Ihre Buchungsanfrage für <strong>{{ listing.title }}</strong> ist abgelaufen, da nicht rechtzeitig reagiert wurde.</p>
+
+  <p>Sie können gerne eine neue Anfrage stellen.</p>
+
+  <p>Mit freundlichen Grüßen<br>{{ platform_name }}</p>
+</body></html>

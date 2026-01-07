@@ -1,0 +1,8 @@
+Hallo {{ user.first_name|default:user.username }},
+
+Ihre Buchungsanfrage für „{{ listing.title }}“ ist abgelaufen, da nicht rechtzeitig reagiert wurde.
+
+Sie können gerne eine neue Anfrage stellen.
+
+Mit freundlichen Grüßen
+{{ platform_name }}

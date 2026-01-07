@@ -1,0 +1,10 @@
+<!doctype html>
+<html><body>
+  <p>Hallo {{ user.first_name|default:user.username }},</p>
+
+  <p>Leider wurde Ihre Buchungsanfrage für <strong>{{ listing.title }}</strong> abgelehnt.</p>
+
+  <p>Sie können auf unserer Plattform nach alternativen Angeboten suchen.</p>
+
+  <p>Mit freundlichen Grüßen<br>{{ platform_name }}</p>
+</body></html>

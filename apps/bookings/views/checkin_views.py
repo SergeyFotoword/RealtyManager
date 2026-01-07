@@ -22,10 +22,8 @@ class BookingCheckinView(APIView):
 
     @extend_schema(summary="Confirm check-in")
     def post(self, request, booking_id: int):
-        booking = Booking.objects.filter(
-            id=booking_id,
-            landlord=request.user,
-        ).first()
+        # IMPORTANT: do NOT filter by landlord here — that causes false 404
+        booking = Booking.objects.filter(id=booking_id).first()
 
         if not booking:
             return Response({"detail": "Booking not found."}, status=404)
@@ -44,10 +42,8 @@ class BookingCheckoutView(APIView):
 
     @extend_schema(summary="Confirm checkout")
     def post(self, request, booking_id: int):
-        booking = Booking.objects.filter(
-            id=booking_id,
-            landlord=request.user,
-        ).first()
+        # IMPORTANT: do NOT filter by landlord here — that causes false 404
+        booking = Booking.objects.filter(id=booking_id).first()
 
         if not booking:
             return Response({"detail": "Booking not found."}, status=404)
